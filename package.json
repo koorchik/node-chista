@@ -1,0 +1,25 @@
+{
+  "name": "chista",
+  "version": "1.0.0",
+  "description": "NodeJs toolkit for building express services with clean architecture",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/koorchik/node-chista.git"
+  },
+  "keywords": [
+    "express",
+    "service",
+    "architecture",
+    "chista"
+  ],
+  "author": "koorchik",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/koorchik/node-chista/issues"
+  },
+  "homepage": "https://github.com/koorchik/node-chista#readme"
+}
