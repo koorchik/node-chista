@@ -2,24 +2,33 @@
   "name": "chista",
   "version": "1.0.0",
   "description": "NodeJs toolkit for building express services with clean architecture",
-  "main": "index.js",
+  "main": "src/Chista.js",
   "scripts": {
-    "test": "npm test"
+    "test": "npm test",
+    "build": "babel src -d dist; cp README.md dist/README.md"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/koorchik/node-chista.git"
   },
+  "private": true,
   "keywords": [
     "express",
     "service",
     "architecture",
     "chista"
   ],
+  "peerDependencies": {
+    "livr": "*"
+  },
   "author": "koorchik",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/koorchik/node-chista/issues"
   },
-  "homepage": "https://github.com/koorchik/node-chista#readme"
+  "homepage": "https://github.com/koorchik/node-chista#readme",
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1"
+  }
 }
