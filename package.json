@@ -1,6 +1,6 @@
 {
   "name": "chista",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "NodeJs toolkit for building express services with clean architecture",
   "main": "src/Chista.js",
   "scripts": {
@@ -29,6 +29,6 @@
   "homepage": "https://github.com/koorchik/node-chista#readme",
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.6.1"
+    "babel-preset-env": "^1.7.0"
   }
 }
