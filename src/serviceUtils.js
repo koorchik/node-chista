@@ -30,12 +30,12 @@ async function runService(serviceClass, { context = {}, params = {}, logger = co
 }
 
 
-function makeServiceRunner(serviceClass, paramsBuilder, contexBuilder, logger = consoleLogger) {
+function makeServiceRunner(serviceClass, paramsBuilder, contextBuilder, logger = consoleLogger) {
     return async function serviceRunner(req, res) {
         const resultPromise = runService(serviceClass, {
             logger,
             params  : paramsBuilder(req, res),
-            context : contexBuilder(req, res)
+            context : contextBuilder(req, res)
         });
 
         return renderPromiseAsJson(req, res, resultPromise, logger);
