@@ -72,7 +72,7 @@ async function renderPromiseAsJson(req, res, promise, logger = consoleLogger) {
                 status : 0,
                 error  : {
                     code    : 'SERVER_ERROR',
-                    message : 'Please, contact your system administartor!'
+                    message : 'Please contact your system administrator!'
                 }
             });
         }
