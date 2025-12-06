@@ -18,7 +18,7 @@ npm install chista
 
 ## Features
 
-- LIVR validation with extra rules
+- LIVR validation
 - Generic types for type-safe input/output
 - Hook-based architecture for lifecycle events
 - Validator caching for performance
