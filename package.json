@@ -1,34 +1,52 @@
 {
   "name": "chista",
-  "version": "1.0.1",
-  "description": "NodeJs toolkit for building express services with clean architecture",
-  "main": "src/Chista.js",
-  "scripts": {
-    "test": "npm test",
-    "build": "babel src -d dist; cp README.md dist/README.md"
+  "version": "2.0.0",
+  "description": "A minimal, framework-agnostic base class for building clean service layers with LIVR validation",
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ServiceBase": {
+      "types": "./dist/ServiceBase.d.ts",
+      "default": "./dist/ServiceBase.js"
+    },
+    "./ServiceError": {
+      "types": "./dist/ServiceError.d.ts",
+      "default": "./dist/ServiceError.js"
+    }
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/koorchik/node-chista.git"
-  },
-  "private": true,
-  "keywords": [
-    "express",
-    "service",
-    "architecture",
-    "chista"
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "service",
+    "validation",
+    "livr",
+    "clean-architecture",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
   "peerDependencies": {
-    "livr": "*"
+    "livr": "^2.10.1"
   },
-  "author": "koorchik",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/koorchik/node-chista/issues"
-  },
-  "homepage": "https://github.com/koorchik/node-chista#readme",
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-preset-env": "^1.7.0"
+    "@types/jest": "^29.5.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.0",
+    "typescript": "^5.0.0"
   }
 }
