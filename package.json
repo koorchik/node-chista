@@ -1,6 +1,6 @@
 {
   "name": "chista",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A minimal, framework-agnostic base class for building clean service layers with LIVR validation",
   "type": "module",
   "types": "./dist/index.d.ts",
@@ -41,7 +41,7 @@
   "author": "",
   "license": "MIT",
   "peerDependencies": {
-    "livr": "^2.10.1"
+    "livr": ">=2.10.1"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
