@@ -9,13 +9,9 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./ServiceBase": {
-      "types": "./dist/ServiceBase.d.ts",
-      "default": "./dist/ServiceBase.js"
-    },
-    "./ServiceError": {
-      "types": "./dist/ServiceError.d.ts",
-      "default": "./dist/ServiceError.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
     }
   },
   "files": [

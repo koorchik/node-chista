@@ -53,7 +53,7 @@ See `examples/` for runnable code demonstrating key patterns:
 - **permissions/** - Role-based access control and resource ownership checks in `checkPermissions()`
 - **hooks/** - Lifecycle hooks (`onSuccess`/`onError`) for logging, metrics, events, and cleanup
 
-Run any example with: `npx ts-node --esm examples/<name>/main.ts`
+Run any example with: `npx tsx examples/<name>/main.ts`
 
 ### Example Structure
 
