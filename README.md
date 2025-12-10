@@ -25,6 +25,17 @@ npm install chista
 - ServiceError for consistent error handling
 - TypeScript support
 
+## Building REST APIs
+
+For building REST API backends, chista works best with [chista-express](https://www.npmjs.com/package/chista-express) - a lightweight Express.js helper library that:
+
+- Provides a builder pattern for proper middleware ordering
+- Maps chista's `ServiceError` to REST API responses
+- Includes dependency injection for service instantiation
+- Supports session management and WebSocket integration
+
+Together, they provide a complete structure for building clean, validated REST API backends.
+
 ## Design
 
 ### Why Chista?
