@@ -4,7 +4,7 @@ const { Validator } = LIVR;
 /**
  * Abstract base class for building service layers with LIVR validation.
  *
- * Execution flow: run() → validate() → checkPermissions() → doRun() → onSuccess/onError
+ * Execution flow: run() → validate() → checkPermissions() → aroundExecute() → execute() → onSuccess/onError
  *
  * @template TValidParams - Type of validated input data
  * @template TServiceResult - Type of service result
@@ -15,7 +15,7 @@ const { Validator } = LIVR;
  *   static validation = { email: ['required', 'email'] };
  *
  *   async checkPermissions(data) { return true; }
- *   async doRun(data) { return { userId: '123' }; }
+ *   async execute(data) { return { userId: '123' }; }
  * }
  *
  * const result = await new UsersCreate().run({ email: 'user@example.com' });
@@ -33,8 +33,8 @@ export class ServiceBase {
      */
     async run(inputData) {
         // Runtime checks for JavaScript users
-        if (typeof this.doRun !== 'function') {
-            throw new Error(`${this.constructor.name}: doRun() must be implemented`);
+        if (typeof this.execute !== 'function') {
+            throw new Error(`${this.constructor.name}: execute() must be implemented`);
         }
         if (typeof this.checkPermissions !== 'function') {
             throw new Error(`${this.constructor.name}: checkPermissions() must be implemented`);
@@ -51,7 +51,7 @@ export class ServiceBase {
             const cleanData = await this.validate(inputData);
             context.cleanData = cleanData;
             await this.checkPermissions(cleanData);
-            const result = await this.doRun(cleanData);
+            const result = await this.aroundExecute(cleanData, (data) => this.execute(data));
             context.endTime = new Date();
             context.executionTimeMs = context.endTime.getTime() - startTime.getTime();
             await this.onSuccess(result, context);
@@ -99,6 +99,25 @@ export class ServiceBase {
             return validData;
         }
         throw new ServiceError({ fields: validator.getErrors() ?? {} });
+    }
+    /**
+     * Wraps execute() to add cross-cutting concerns like transactions, retries, etc.
+     * Override in intermediate base classes to add wrapping behavior.
+     * Call super.aroundExecute() to chain multiple wrappers.
+     *
+     * @param cleanData - Validated input data
+     * @param proceed - Function that calls execute() - invoke this to run business logic
+     * @returns Promise resolving to the service result
+     *
+     * @example
+     * ```typescript
+     * protected override async aroundExecute(data, proceed) {
+     *   return this.db.withTransaction(() => super.aroundExecute(data, proceed));
+     * }
+     * ```
+     */
+    async aroundExecute(cleanData, proceed) {
+        return proceed(cleanData);
     }
     async onSuccess(result, context) {
         // Override in subclass

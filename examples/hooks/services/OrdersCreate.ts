@@ -11,7 +11,7 @@ import { eventLog } from '../infrastructure.js';
 
 const orderCreateValidation = {
   customerId: ['required', 'string'],
-  items: ['required', { list_of: { item_id: ['required', 'string'], quantity: ['required', 'positive_integer'] } }]
+  items: ['required', { list_of_objects: { item_id: ['required', 'string'], quantity: ['required', 'positive_integer'] } }]
 } as const;
 
 type OrderCreateInput = InferFromSchema<typeof orderCreateValidation>;

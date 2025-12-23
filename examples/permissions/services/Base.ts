@@ -13,12 +13,6 @@ export abstract class Base<TInput, TOutput> extends ServiceBase<TInput, TOutput>
     super();
   }
 
-  async doRun(data: TInput): Promise<TOutput> {
-    return this.execute(data);
-  }
-
-  abstract execute(data: TInput): Promise<TOutput>;
-
   // Helper to throw permission denied error
   protected denyAccess(reason: string): never {
     throw new ServiceError({

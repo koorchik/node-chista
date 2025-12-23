@@ -62,7 +62,7 @@ async function main() {
   // Non-owner cannot delete someone else's document
   console.log('\nNon-owner attempting to delete:');
   try {
-    await new DocumentsDelete(user2).run({ documentId: 'doc-2' });
+    await new DocumentsDelete(user1).run({ documentId: 'doc-2' });
   } catch (error) {
     if (error instanceof ServiceError) console.error('Denied:', error.toObject());
   }

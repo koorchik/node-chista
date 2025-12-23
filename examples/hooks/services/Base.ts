@@ -12,12 +12,6 @@ import { ServiceError } from '../../../src/ServiceError.js';
 import { metrics, errorTracker } from '../infrastructure.js';
 
 export abstract class Base<TInput, TOutput> extends ServiceBase<TInput, TOutput> {
-  async doRun(data: TInput): Promise<TOutput> {
-    return this.execute(data);
-  }
-
-  abstract execute(data: TInput): Promise<TOutput>;
-
   /**
    * Called after successful execution.
    * Use for: logging, metrics, event publishing, cache invalidation.

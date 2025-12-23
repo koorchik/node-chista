@@ -2,7 +2,7 @@
  * Layer 2: Project-specific base class
  *
  * This intermediate class adds:
- * - Database transaction wrapping
+ * - Database transaction wrapping via aroundExecute
  * - Event publishing after successful transactions
  */
 
@@ -17,13 +17,13 @@ export abstract class Base<TInput = unknown, TOutput = unknown> extends ServiceB
     super();
   }
 
-  // Override doRun to wrap execution in a database transaction
-  async doRun(data: TInput): Promise<TOutput> {
-    return this.db.withTransaction(() => this.execute(data));
+  // Wrap execute() in a database transaction
+  protected override async aroundExecute(
+    data: TInput,
+    proceed: (data: TInput) => Promise<TOutput>
+  ): Promise<TOutput> {
+    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
   }
-
-  // Define new abstract method for business logic
-  abstract execute(data: TInput): Promise<TOutput>;
 
   // Publish events after transaction commits
   protected override async onSuccess(result: TOutput, context: RunContext<TInput>): Promise<void> {

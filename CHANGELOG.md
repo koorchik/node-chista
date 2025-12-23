@@ -1,3 +1,42 @@
+# Changelog
+
+## v2.1.0
+
+### Breaking Changes
+
+- **Renamed `doRun` → `execute`**: The abstract method for business logic is now `execute()`
+- **Removed intermediate `doRun` → `execute` pattern**: Base classes no longer need to override `doRun` to call `execute`
+
+### New Features
+
+- **`aroundExecute(data, proceed)` hook**: AOP-style hook for wrapping execution (transactions, retries, etc.)
+  ```typescript
+  protected override async aroundExecute(data, proceed) {
+    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
+  }
+  ```
+
+### Migration from v2.x
+
+```typescript
+// Before (v2.x)
+abstract class Base extends ServiceBase {
+  async doRun(data) {
+    return this.db.withTransaction(() => this.execute(data));
+  }
+  abstract execute(data): Promise<unknown>;
+}
+
+// After (v3.x)
+abstract class Base extends ServiceBase {
+  protected override async aroundExecute(data, proceed) {
+    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
+  }
+}
+```
+
+---
+
 # Changelog: chista v2.0.0 vs node-chista v1.0.1
 
 This document outlines all changes between the original [node-chista](https://github.com/koorchik/node-chista) and the new chista v2.0.0.
@@ -20,14 +59,15 @@ The original library was tightly coupled to Express.js. The new version is **fra
 
 ### ServiceBase API Changes
 
-| Old (v1.x) | New (v2.x) | Notes |
-|------------|------------|-------|
+| Old (v1.x) | New (v2.x/v3.x) | Notes |
+|------------|-----------------|-------|
 | `constructor({ context })` | `constructor()` | Context no longer required in constructor |
 | `validationRules` (static) | `validation` (static) | Renamed static property |
-| `execute(data)` | `doRun(data)` | Renamed abstract method |
+| `execute(data)` | `execute(data)` | Same name, now abstract in ServiceBase |
 | `doValidation(data, rules)` | `validateWithRules(data, rules)` | Renamed, now generic `<T>` |
 | `run(params)` | `run(inputData)` | Same purpose, different orchestration |
 | — | `checkPermissions(data)` | **New** abstract method (required) |
+| — | `aroundExecute(data, proceed)` | **New** hook for wrapping execute (v3.x) |
 | — | `onSuccess(result, context)` | **New** lifecycle hook |
 | — | `onError(error, context)` | **New** lifecycle hook |
 
@@ -77,7 +117,7 @@ interface RunContext<TValidParams> {
 - When no `validation` property set, `null`/`undefined` input → `{}`
 
 ### Runtime Safety Checks
-- Descriptive error if `doRun()` not implemented
+- Descriptive error if `execute()` not implemented
 - Descriptive error if `checkPermissions()` not implemented
 - Validation that `validation` property is object or undefined
 
@@ -135,13 +175,13 @@ import { ServiceBase, ServiceError } from 'chista';
 
 ### 2. Update ServiceBase Subclass
 ```typescript
-// Before
+// Before (v1.x)
 class MyService extends ServiceBase {
   static validationRules = { /* rules */ };
   async execute(data) { /* logic */ }
 }
 
-// After
+// After (v3.x)
 class MyService extends ServiceBase<InputType, OutputType> {
   static validation = { /* rules */ };
 
@@ -149,8 +189,8 @@ class MyService extends ServiceBase<InputType, OutputType> {
     return true; // Implement authorization
   }
 
-  async doRun(data: InputType): Promise<OutputType> {
-    // Business logic (was execute())
+  async execute(data: InputType): Promise<OutputType> {
+    // Business logic
   }
 }
 ```

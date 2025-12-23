@@ -35,14 +35,15 @@ This is a TypeScript ESM library that exports two classes:
 1. `run(inputData)` - Entry point
 2. `validate(data)` - LIVR validation using static `validation` property
 3. `checkPermissions(cleanData)` - Abstract, must implement authorization
-4. `doRun(cleanData)` - Abstract, implement or wrap business logic
-5. `onSuccess(result, context)` / `onError(error, context)` - Lifecycle hooks
+4. `aroundExecute(cleanData, proceed)` - Hook for wrapping execute (transactions, retries, etc.)
+5. `execute(cleanData)` - Abstract, implement business logic
+6. `onSuccess(result, context)` / `onError(error, context)` - Lifecycle hooks
 
 ### Key Patterns
 
 - Services are generic: `ServiceBase<TValidParams, TServiceResult>`
 - `validateWithRules<T>(data, rules)` allows dynamic/multi-step validation within a service
-- Consumers create an intermediate `Base` class that overrides `doRun` to call abstract `execute` method
+- Intermediate `Base` classes override `aroundExecute` to add cross-cutting concerns (transactions, retries, etc.)
 
 ## Examples
 
@@ -105,17 +106,38 @@ export class MyService extends Base<MyServiceInput, MyServiceOutput> {
 
 ### Base Class Pattern
 
-Project-specific `Base` class overrides `doRun` to call abstract `execute`:
+Project-specific `Base` class can override `aroundExecute` for cross-cutting concerns:
 
 ```typescript
 import { ServiceBase } from '../../../src/ServiceBase.js';
 
 export abstract class Base<TInput, TOutput> extends ServiceBase<TInput, TOutput> {
-  async doRun(data: TInput): Promise<TOutput> {
-    return this.execute(data);
+  constructor(protected db: Database) {
+    super();
   }
 
-  abstract execute(data: TInput): Promise<TOutput>;
+  // Wrap execute() in a database transaction
+  protected override async aroundExecute(
+    data: TInput,
+    proceed: (data: TInput) => Promise<TOutput>
+  ): Promise<TOutput> {
+    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
+  }
+}
+```
+
+Concrete services just implement `execute()`:
+
+```typescript
+export class UsersCreate extends Base<CreateUserInput, CreateUserOutput> {
+  static validation = { email: ['required', 'email'] };
+
+  async checkPermissions() { return true; }
+
+  async execute(data: CreateUserInput): Promise<CreateUserOutput> {
+    // Business logic - runs inside transaction from Base.aroundExecute
+    return { userId: '123' };
+  }
 }
 ```
 

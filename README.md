@@ -43,7 +43,7 @@ Together, they provide a complete structure for building clean, validated REST A
 Chista provides a consistent structure for service layer operations, separating concerns into distinct phases:
 
 ```
-run(input) → validate → checkPermissions → doRun → onSuccess/onError
+run(input) → validate → checkPermissions → aroundExecute → execute → onSuccess/onError
 ```
 
 This design is:
@@ -53,7 +53,7 @@ This design is:
 
 ### Design Patterns
 
-**Template Method Pattern**: The `run()` method defines the algorithm skeleton. Subclasses implement abstract methods (`doRun`, `checkPermissions`) and optionally override hooks (`onSuccess`, `onError`).
+**Template Method Pattern**: The `run()` method defines the algorithm skeleton. Subclasses implement abstract methods (`execute`, `checkPermissions`) and optionally override hooks (`onSuccess`, `onError`).
 
 **Layered Inheritance**: The recommended pattern uses three layers:
 1. `ServiceBase` (library) - Core template with validation and lifecycle
@@ -74,32 +74,42 @@ class MyService extends ServiceBase {
 
 **Note**: Caching only applies when using the `validation` property. When you override `validate()` and use `validateWithRules()`, validators are created fresh each call (necessary for dynamic rules).
 
-See [`examples/simple/`](./examples/simple/) for a complete runnable example.
+### Examples
+
+See the [`examples/`](./examples/) directory for runnable code demonstrating key patterns:
+
+| Example | Description |
+|---------|-------------|
+| [`simple/`](./examples/simple/) | Basic 3-layer pattern with transactions and event publishing |
+| [`dynamic-validation/`](./examples/dynamic-validation/) | Multi-step validation with conditional rules using `validateWithRules()` |
+| [`permissions/`](./examples/permissions/) | Role-based access control and resource ownership checks |
+| [`hooks/`](./examples/hooks/) | Lifecycle hooks (`onSuccess`/`onError`) for logging, metrics, and cleanup |
+
+Run any example with: `npx tsx examples/<name>/main.ts`
 
 ## Basic Usage
 
 ### 1. Create a project-specific base class
 
 The recommended pattern is to create an intermediate base class that:
-- Overrides `doRun` to add transaction support (or other cross-cutting concerns)
-- Defines a new abstract `execute` method for business logic
+- Overrides `aroundExecute` to add transaction support (or other cross-cutting concerns)
 
 ```typescript
 import { ServiceBase, RunContext } from 'chista/ServiceBase.js';
 import { ServiceError } from 'chista/ServiceError.js';
 
 export abstract class Base<TInput = unknown, TOutput = unknown> extends ServiceBase<TInput, TOutput> {
-  constructor(private db: Database, private pubSub: PubSub) {
+  constructor(protected db: Database, private pubSub: PubSub) {
     super();
   }
 
-  // Override doRun to wrap execution in a transaction
-  async doRun(data: TInput): Promise<TOutput> {
-    return this.db.withTransaction(() => this.execute(data));
+  // Override aroundExecute to wrap execution in a transaction
+  protected override async aroundExecute(
+    data: TInput,
+    proceed: (data: TInput) => Promise<TOutput>
+  ): Promise<TOutput> {
+    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
   }
-
-  // Define new abstract method for business logic
-  abstract execute(data: TInput): Promise<TOutput>;
 
   protected override async onSuccess(result: TOutput, context: RunContext<TInput>): Promise<void> {
     await this.pubSub.processPublishedEvents();
@@ -155,10 +165,11 @@ Abstract base class with the following methods:
 
 | Method | Description |
 |--------|-------------|
-| `run(inputData)` | Main entry point - validates, checks permissions, calls doRun |
+| `run(inputData)` | Main entry point - validates, checks permissions, calls execute |
 | `validate(data)` | LIVR validation (override `validation` property) |
 | `validateWithRules<T>(data, rules)` | Helper for dynamic validation with custom rules |
-| `doRun(data)` | Abstract - implement or wrap business logic |
+| `execute(data)` | Abstract - implement business logic |
+| `aroundExecute(data, proceed)` | Hook for wrapping execute (transactions, retries, etc.) |
 | `checkPermissions(data)` | Abstract - implement authorization |
 
 Hook methods (override in subclass):

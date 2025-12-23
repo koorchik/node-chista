@@ -1,6 +1,6 @@
 {
   "name": "chista",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "A minimal, framework-agnostic base class for building clean service layers with LIVR validation",
   "type": "module",
   "types": "./dist/index.d.ts",

@@ -16,7 +16,7 @@ class TestService extends ServiceBase<TestInput, TestOutput> {
     return true;
   }
 
-  async doRun(data: TestInput): Promise<TestOutput> {
+  async execute(data: TestInput): Promise<TestOutput> {
     return { received: data.name };
   }
 }
@@ -26,7 +26,7 @@ class PermissionDeniedService extends ServiceBase {
     throw new ServiceError({ fields: {}, code: 'PERMISSION_DENIED' });
   }
 
-  async doRun() {
+  async execute() {
     return {};
   }
 }
@@ -35,14 +35,15 @@ class PermissionDeniedService extends ServiceBase {
 abstract class TransactionBase extends ServiceBase {
   lifecycleCalls: string[] = [];
 
-  async doRun(data: unknown) {
+  protected override async aroundExecute(
+    data: unknown,
+    proceed: (data: unknown) => Promise<unknown>
+  ): Promise<unknown> {
     this.lifecycleCalls.push('begin');
-    const result = await this.execute(data);
+    const result = await super.aroundExecute(data, proceed);
     this.lifecycleCalls.push('commit');
     return result;
   }
-
-  abstract execute(data: unknown): Promise<unknown>;
 
   protected override async onSuccess() {
     this.lifecycleCalls.push('onSuccess');
@@ -82,7 +83,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -118,7 +119,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun() {
+        async execute() {
           throw new Error('boom');
         }
 
@@ -143,7 +144,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun() {
+        async execute() {
           return { ok: true };
         }
 
@@ -178,7 +179,7 @@ describe('ServiceBase', () => {
           return this.validateWithRules(data, { name: ['required', 'string'] });
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -198,7 +199,7 @@ describe('ServiceBase', () => {
           return this.validateWithRules(data, { email: ['required', 'email'] });
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -221,7 +222,7 @@ describe('ServiceBase', () => {
           return this.validateWithRules(data, { step: ['required'], value: ['required'] });
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -248,7 +249,7 @@ describe('ServiceBase', () => {
           return this.validateWithRules(data, rules);
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -289,7 +290,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: CreateUserInput): Promise<CreateUserOutput> {
+        async execute(data: CreateUserInput): Promise<CreateUserOutput> {
           return { userId: `user-${data.email}` };
         }
       }
@@ -309,7 +310,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -337,7 +338,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -349,7 +350,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -370,7 +371,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -385,7 +386,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: unknown) {
+        async execute(data: unknown) {
           return data;
         }
       }
@@ -406,7 +407,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun(data: { id: number }) {
+        async execute(data: { id: number }) {
           executionCount++;
           await new Promise((resolve) => setTimeout(resolve, 10));
           return { id: data.id, count: executionCount };
@@ -426,24 +427,24 @@ describe('ServiceBase', () => {
   });
 
   describe('runtime checks', () => {
-    it('throws descriptive error when doRun is not implemented', async () => {
-      // Simulate JS user forgetting to implement doRun
+    it('throws descriptive error when execute is not implemented', async () => {
+      // Simulate JS user forgetting to implement execute
       class IncompleteService extends ServiceBase {
         async checkPermissions() {
           return true;
         }
-        // doRun not implemented
+        // execute not implemented
       }
 
       // Force TypeScript to allow this for testing
       const service = new (IncompleteService as any)();
-      await expect(service.run({})).rejects.toThrow('IncompleteService: doRun() must be implemented');
+      await expect(service.run({})).rejects.toThrow('IncompleteService: execute() must be implemented');
     });
 
     it('throws descriptive error when checkPermissions is not implemented', async () => {
       // Simulate JS user forgetting to implement checkPermissions
       class IncompleteService extends ServiceBase {
-        async doRun() {
+        async execute() {
           return {};
         }
         // checkPermissions not implemented
@@ -461,7 +462,7 @@ describe('ServiceBase', () => {
           return true;
         }
 
-        async doRun() {
+        async execute() {
           return {};
         }
       }
@@ -480,13 +481,116 @@ describe('ServiceBase', () => {
           return this.validateWithRules(data, null as any);
         }
 
-        async doRun() {
+        async execute() {
           return {};
         }
       }
 
       const service = new TestService();
       await expect(service.run({})).rejects.toThrow('validateWithRules: rules must be a non-null object');
+    });
+  });
+
+  describe('aroundExecute hook', () => {
+    it('allows wrapping execute via aroundExecute', async () => {
+      const calls: string[] = [];
+
+      class WrappedService extends ServiceBase {
+        async checkPermissions() {
+          return true;
+        }
+
+        protected override async aroundExecute(
+          data: unknown,
+          proceed: (data: unknown) => Promise<unknown>
+        ): Promise<unknown> {
+          calls.push('before');
+          const result = await proceed(data);
+          calls.push('after');
+          return result;
+        }
+
+        async execute(data: unknown) {
+          calls.push('execute');
+          return data;
+        }
+      }
+
+      const service = new WrappedService();
+      await service.run({ test: true });
+      expect(calls).toEqual(['before', 'execute', 'after']);
+    });
+
+    it('supports chaining aroundExecute via super', async () => {
+      const calls: string[] = [];
+
+      abstract class Layer1 extends ServiceBase {
+        protected override async aroundExecute(
+          data: unknown,
+          proceed: (data: unknown) => Promise<unknown>
+        ): Promise<unknown> {
+          calls.push('layer1-before');
+          const result = await super.aroundExecute(data, proceed);
+          calls.push('layer1-after');
+          return result;
+        }
+      }
+
+      abstract class Layer2 extends Layer1 {
+        protected override async aroundExecute(
+          data: unknown,
+          proceed: (data: unknown) => Promise<unknown>
+        ): Promise<unknown> {
+          calls.push('layer2-before');
+          const result = await super.aroundExecute(data, proceed);
+          calls.push('layer2-after');
+          return result;
+        }
+      }
+
+      class ConcreteService extends Layer2 {
+        async checkPermissions() {
+          return true;
+        }
+
+        async execute(data: unknown) {
+          calls.push('execute');
+          return data;
+        }
+      }
+
+      const service = new ConcreteService();
+      await service.run({});
+      expect(calls).toEqual([
+        'layer2-before',
+        'layer1-before',
+        'execute',
+        'layer1-after',
+        'layer2-after'
+      ]);
+    });
+
+    it('can modify data passed to execute', async () => {
+      class ModifyingService extends ServiceBase {
+        async checkPermissions() {
+          return true;
+        }
+
+        protected override async aroundExecute(
+          data: { value: number },
+          proceed: (data: { value: number }) => Promise<{ doubled: number }>
+        ): Promise<{ doubled: number }> {
+          return proceed({ value: data.value * 2 });
+        }
+
+        async execute(data: { value: number }) {
+          return { doubled: data.value };
+        }
+      }
+
+      const service = new ModifyingService();
+      const result = await service.run({ value: 5 });
+      expect(result).toEqual({ doubled: 10 });
     });
   });
 });

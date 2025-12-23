@@ -34,7 +34,7 @@ export class UsersCreate extends Base<CreateUserInput, CreateUserOutput> {
     return true;
   }
 
-  // Business logic (runs inside transaction from Base.doRun)
+  // Business logic (runs inside transaction from Base.aroundExecute)
   async execute(data: CreateUserInput): Promise<CreateUserOutput> {
     // Check if user already exists
     const existing = await this.db.users.findByEmail(data.email);
