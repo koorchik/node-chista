@@ -6,14 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Chista is a minimal, framework-agnostic base class for building clean service layers with LIVR validation. The name means "clean" in Ukrainian.
 
+## Setup
+
+Requires Node >=20. `livr` is a peer dependency — build and tests fail without it:
+
+```bash
+npm install
+npm install livr    # peer dep, not auto-installed
+```
+
 ## Commands
 
 ```bash
-# Build TypeScript to dist/
-npm run build
-
-# Run all tests
-npm test
+npm run build                # TypeScript to dist/
+npm test                     # Run all tests
+npm run prepublishOnly       # Build + test (runs before npm publish)
 
 # Run a single test file
 node --experimental-vm-modules node_modules/jest/bin/jest.js tests/ServiceBase.test.ts
@@ -56,92 +63,19 @@ See `examples/` for runnable code demonstrating key patterns:
 
 Run any example with: `npx tsx examples/<name>/main.ts`
 
-### Example Structure
+### Key Conventions
 
-Each example follows this structure:
-
-```
-examples/<name>/
-├── main.ts              # Entry point, demo code
-├── types.ts             # Shared infrastructure types (if needed)
-└── services/
-    ├── Base.ts          # Project-specific base class
-    └── <Service>.ts     # Concrete service implementations
-```
-
-### Service File Pattern
-
-Each service file should be self-contained with validation schema and type inference:
-
-```typescript
-import type { InferFromSchema } from 'livr/types';
-import { Base } from './Base.js';
-
-// Validation schema
-const myServiceValidation = {
-  email: ['required', 'email'],
-  name: ['required', 'string']
-} as const;
-
-// Infer input type from schema
-type MyServiceInput = InferFromSchema<typeof myServiceValidation>;
-
-interface MyServiceOutput {
-  id: string;
-}
-
-export class MyService extends Base<MyServiceInput, MyServiceOutput> {
-  static validation = myServiceValidation;
-
-  async checkPermissions(data: MyServiceInput): Promise<boolean> {
-    return true;
-  }
-
-  async execute(data: MyServiceInput): Promise<MyServiceOutput> {
-    // Business logic here
-    return { id: '123' };
-  }
-}
-```
-
-### Base Class Pattern
-
-Project-specific `Base` class can override `aroundExecute` for cross-cutting concerns:
-
-```typescript
-import { ServiceBase } from '../../../src/ServiceBase.js';
-
-export abstract class Base<TInput, TOutput> extends ServiceBase<TInput, TOutput> {
-  constructor(protected db: Database) {
-    super();
-  }
-
-  // Wrap execute() in a database transaction
-  protected override async aroundExecute(
-    data: TInput,
-    proceed: (data: TInput) => Promise<TOutput>
-  ): Promise<TOutput> {
-    return this.db.withTransaction(() => super.aroundExecute(data, proceed));
-  }
-}
-```
-
-Concrete services just implement `execute()`:
-
-```typescript
-export class UsersCreate extends Base<CreateUserInput, CreateUserOutput> {
-  static validation = { email: ['required', 'email'] };
-
-  async checkPermissions() { return true; }
-
-  async execute(data: CreateUserInput): Promise<CreateUserOutput> {
-    // Business logic - runs inside transaction from Base.aroundExecute
-    return { userId: '123' };
-  }
-}
-```
+- Each service file is self-contained: validation schema (`as const`), inferred input type via `InferFromSchema`, and output interface
+- Project-specific `Base` classes override `aroundExecute` for cross-cutting concerns (transactions, retries)
+- Concrete services implement `checkPermissions()` and `execute()` — see `examples/simple/` for the canonical pattern
 
 ## Dependencies
 
 - **livr**: Peer dependency for validation (Language Independent Validation Rules)
 - Tests use Jest with ts-jest ESM preset
+
+## Gotchas
+
+- ESM-only library (`"type": "module"`) — all imports need `.js` extensions
+- Jest requires `--experimental-vm-modules` flag (already configured in `npm test`)
+- LIVR validators are cached as static properties on each service class — don't mutate `static validation` at runtime
