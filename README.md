@@ -8,8 +8,6 @@
 
 A minimal, framework-agnostic base class for building clean service layers with LIVR validation.
 
-"Chista" means "clean" in Ukrainian.
-
 ## Installation
 
 ```bash
